@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="NERV-EDU" />
+  <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png" />
+  <link rel="icon" type="image/png" sizes="180x180" href="icon-180.png" />
+  <title>NERV EDUCATION SYSTEM // MAGI-CLASS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --bg-secondary: #12121a;
+      --neon: #CCFF00;
+      --neon-dim: rgba(204, 255, 0, 0.3);
+      --neon-glow: rgba(204, 255, 0, 0.15);
+      --violet: #8B7DFF;
+      --violet-dim: rgba(139, 125, 255, 0.3);
+      --violet-glow: rgba(139, 125, 255, 0.15);
+      --red: #FF3333;
+      --red-dim: rgba(255, 51, 51, 0.3);
+      --text: #e0e0e0;
+      --text-dim: #6a6a7a;
+      --border: rgba(139, 125, 255, 0.2);
+      --border-neon: rgba(204, 255, 0, 0.3);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --mono: "JetBrains Mono", monospace;
+      --display: "Orbitron", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+    }
+
+    /* Scanline overlay */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        transparent 2px,
+        rgba(0,0,0,0.2) 2px,
+        rgba(0,0,0,0.2) 4px
+      );
+      z-index: 100;
+    }
+
+    /* CRT flicker */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.3) 100%);
+      z-index: 99;
+    }
+
+    /* NERV Boot Screen */
+    .boot-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+    }
+
+    .boot-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .nerv-logo {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 30px;
+      position: relative;
+    }
+
+    .nerv-logo svg {
+      width: 100%;
+      height: 100%;
+      fill: var(--neon);
+      filter: drop-shadow(0 0 20px var(--neon-dim));
+      animation: logo-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes logo-pulse {
+      0%, 100% { opacity: 1; filter: drop-shadow(0 0 20px var(--neon-dim)); }
+      50% { opacity: 0.7; filter: drop-shadow(0 0 40px var(--neon)); }
+    }
+
+    .boot-title {
+      font-family: var(--display);
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 0.3em;
+      color: var(--neon);
+      text-shadow: 0 0 30px var(--neon-dim);
+      margin-bottom: 8px;
+    }
+
+    .boot-subtitle {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      color: var(--violet);
+      margin-bottom: 40px;
+    }
+
+    .boot-box {
+      width: min(500px, calc(100vw - 40px));
+      border: 1px solid var(--border-neon);
+      background: rgba(204, 255, 0, 0.02);
+      padding: 20px;
+    }
+
+    .boot-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .boot-header-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--neon);
+    }
+
+    .boot-code {
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    .boot-log {
+      font-size: 11px;
+      line-height: 2;
+      color: var(--neon);
+      min-height: 120px;
+      white-space: pre-line;
+      text-shadow: 0 0 10px var(--neon-dim);
+    }
+
+    .boot-progress {
+      margin-top: 16px;
+      height: 3px;
+      background: var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .boot-progress > div {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--violet), var(--neon));
+      box-shadow: 0 0 20px var(--neon);
+      transition: width 0.3s ease;
+    }
+
+    /* Warning Banner */
+    .warning-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 90;
+      padding: 6px 12px;
+      background: var(--red);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      animation: warning-flash 0.5s ease-in-out infinite;
+    }
+
+    .warning-banner.active {
+      display: flex;
+    }
+
+    @keyframes warning-flash {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+
+    .warning-text {
+      font-family: var(--display);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: white;
+    }
+
+    /* App Container */
+    .app {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: calc(16px + var(--safe-top)) 12px calc(90px + var(--safe-bottom));
+    }
+
+    /* Header Section */
+    .header-section {
+      margin-bottom: 16px;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .system-id {
+      font-family: var(--display);
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      color: var(--text-dim);
+    }
+
+    .system-id span {
+      color: var(--neon);
+    }
+
+    .jp-badge {
+      font-size: 14px;
+      color: var(--violet);
+      letter-spacing: 0.1em;
+    }
+
+    /* Bento Grid */
+    .bento-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .bento-top {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 8px;
+    }
+
+    .bento-middle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    /* Card Base */
+    .card {
+      border: 1px solid var(--border);
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+      background: var(--bg-secondary);
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--violet), transparent);
+      opacity: 0.5;
+    }
+
+    /* Card Variants */
+    .card-neon {
+      background: var(--neon);
+      color: var(--bg);
+      border-color: var(--neon);
+    }
+
+    .card-neon::before {
+      display: none;
+    }
+
+    .card-violet {
+      background: var(--violet);
+      color: var(--bg);
+      border-color: var(--violet);
+    }
+
+    .card-violet::before {
+      display: none;
+    }
+
+    .card-outline-neon {
+      background: rgba(204, 255, 0, 0.03);
+      border-color: var(--border-neon);
+    }
+
+    .card-outline-neon::before {
+      background: linear-gradient(90deg, transparent, var(--neon), transparent);
+    }
+
+    .card-outline-violet {
+      background: rgba(139, 125, 255, 0.03);
+      border-color: var(--border);
+    }
+
+    /* Corner Decorations */
+    .corner-marks {
+      position: absolute;
+      inset: 6px;
+      pointer-events: none;
+    }
+
+    .corner-marks::before,
+    .corner-marks::after {
+      content: "";
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-color: currentColor;
+      border-style: solid;
+      border-width: 0;
+    }
+
+    .corner-marks::before {
+      top: 0;
+      left: 0;
+      border-top-width: 1px;
+      border-left-width: 1px;
+    }
+
+    .corner-marks::after {
+      bottom: 0;
+      right: 0;
+      border-bottom-width: 1px;
+      border-right-width: 1px;
+    }
+
+    /* Hero Card */
+    .hero-card {
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .hero-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      opacity: 0.7;
+    }
+
+    .hero-day {
+      font-family: var(--display);
+      font-size: clamp(56px, 14vw, 80px);
+      font-weight: 900;
+      line-height: 0.85;
+      letter-spacing: -0.02em;
+    }
+
+    .hero-date {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      opacity: 0.7;
+    }
+
+    .hero-jp {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      writing-mode: vertical-rl;
+      font-size: 16px;
+      letter-spacing: 0.15em;
+      opacity: 0.4;
+    }
+
+    /* Status Card */
+    .status-card {
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .status-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--text-dim);
+    }
+
+    .status-time {
+      font-family: var(--display);
+      font-size: 42px;
+      font-weight: 700;
+      color: var(--neon);
+      text-shadow: 0 0 30px var(--neon-dim);
+      letter-spacing: 0.05em;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--neon);
+      box-shadow: 0 0 10px var(--neon);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 10px var(--neon); }
+      50% { opacity: 0.5; box-shadow: 0 0 20px var(--neon); }
+    }
+
+    .status-text {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--neon);
+    }
+
+    /* Sync Card */
+    .sync-card {
+      min-height: 140px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .sync-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+    }
+
+    .sync-title {
+      font-family: var(--display);
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      margin-top: 8px;
+    }
+
+    .sync-meta {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      opacity: 0.7;
+    }
+
+    .sync-countdown {
+      font-family: var(--display);
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+    }
+
+    /* Data Card */
+    .data-card {
+      min-height: 140px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .data-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+    }
+
+    .data-value {
+      font-family: var(--display);
+      font-size: 48px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .data-bars {
+      display: flex;
+      gap: 4px;
+      margin-top: 8px;
+    }
+
+    .data-bar {
+      flex: 1;
+      height: 24px;
+      background: currentColor;
+      opacity: 0.2;
+    }
+
+    .data-bar.active {
+      opacity: 1;
+    }
+
+    /* Tabs */
+    .tabs-section {
+      margin: 16px 0;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      padding: 8px;
+    }
+
+    .tabs-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tabs-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: var(--violet);
+    }
+
+    .tabs-code {
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+    }
+
+    .tabs-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .tab-btn {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-dim);
+      padding: 12px 8px;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .tab-btn::before {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: transparent;
+      transition: background 0.15s ease;
+    }
+
+    .tab-btn:hover {
+      border-color: var(--border-neon);
+      color: var(--neon);
+    }
+
+    .tab-btn.active {
+      background: var(--neon);
+      color: var(--bg);
+      border-color: var(--neon);
+    }
+
+    /* Content Panel */
+    .content-panel {
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(139, 125, 255, 0.03);
+    }
+
+    .panel-title {
+      font-family: var(--display);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--violet);
+    }
+
+    .panel-badge {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 4px 10px;
+      background: var(--neon);
+      color: var(--bg);
+    }
+
+    .panel-content {
+      padding: 12px;
+    }
+
+    /* Class Card */
+    .class-card {
+      border: 1px solid var(--border);
+      margin-bottom: 8px;
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      background: rgba(139, 125, 255, 0.02);
+      transition: all 0.2s ease;
+    }
+
+    .class-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .class-card:hover {
+      border-color: var(--border-neon);
+    }
+
+    .class-time-block {
+      padding: 14px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      text-align: center;
+      background: rgba(139, 125, 255, 0.05);
+    }
+
+    .class-time-main {
+      font-family: var(--display);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--neon);
+      letter-spacing: 0.02em;
+    }
+
+    .class-time-sub {
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    .class-info {
+      padding: 14px;
+    }
+
+    .class-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .class-name {
+      font-family: var(--display);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+      letter-spacing: 0.02em;
+    }
+
+    .class-code {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 4px 8px;
+      background: var(--violet);
+      color: var(--bg);
+      flex-shrink: 0;
+    }
+
+    .class-code.AEH { background: var(--violet); }
+    .class-code.ACCT { background: #a855f7; }
+    .class-code.CFB { background: var(--neon); color: var(--bg); }
+    .class-code.ECON { background: #ff6b6b; }
+    .class-code.MATH { background: #4ecdc4; }
+
+    .class-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+    }
+
+    .class-meta span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Live State */
+    .class-card.now {
+      border-color: var(--neon);
+      box-shadow: 0 0 30px var(--neon-glow), inset 0 0 30px var(--neon-glow);
+    }
+
+    .class-card.now .class-time-block {
+      background: var(--neon);
+    }
+
+    .class-card.now .class-time-main {
+      color: var(--bg);
+    }
+
+    .class-card.now .class-time-sub {
+      color: var(--bg);
+      opacity: 0.7;
+    }
+
+    .class-card.past {
+      opacity: 0.35;
+    }
+
+    .live-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--display);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      padding: 4px 8px;
+      background: var(--red);
+      color: white;
+      animation: live-pulse 1s ease-in-out infinite;
+    }
+
+    @keyframes live-pulse {
+      0%, 100% { box-shadow: 0 0 10px var(--red-dim); }
+      50% { box-shadow: 0 0 20px var(--red); }
+    }
+
+    .live-tag::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: white;
+      animation: pulse 0.8s ease-in-out infinite;
+    }
+
+    /* Week View */
+    .week-day-card {
+      border: 1px solid var(--border);
+      margin-bottom: 8px;
+    }
+
+    .week-day-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .week-day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      background: rgba(139, 125, 255, 0.05);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .week-day-name {
+      font-family: var(--display);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.05em;
+    }
+
+    .week-day-count {
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+    }
+
+    .today-badge {
+      display: inline-block;
+      margin-left: 10px;
+      font-family: var(--display);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      padding: 4px 8px;
+      background: var(--neon);
+      color: var(--bg);
+      vertical-align: middle;
+      animation: today-glow 2s ease-in-out infinite;
+    }
+
+    @keyframes today-glow {
+      0%, 100% { box-shadow: 0 0 10px var(--neon-dim); }
+      50% { box-shadow: 0 0 20px var(--neon); }
+    }
+
+    .week-day-content {
+      padding: 10px;
+    }
+
+    /* Subject Card */
+    .subject-card {
+      border: 1px solid var(--border);
+      margin-bottom: 8px;
+      background: rgba(139, 125, 255, 0.02);
+    }
+
+    .subject-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .subject-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(139, 125, 255, 0.05);
+    }
+
+    .subject-title {
+      font-family: var(--display);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.02em;
+    }
+
+    .subject-count {
+      font-size: 10px;
+      color: var(--neon);
+      letter-spacing: 0.08em;
+    }
+
+    .session-row {
+      display: grid;
+      grid-template-columns: 40px 100px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .session-row:last-child {
+      border-bottom: none;
+    }
+
+    .session-day {
+      font-family: var(--display);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--violet);
+      letter-spacing: 0.05em;
+    }
+
+    .session-time {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--neon);
+    }
+
+    .session-meta {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    /* Alerts */
+    .alert-card {
+      border: 1px solid var(--border);
+      padding: 16px;
+      margin-bottom: 8px;
+      background: rgba(139, 125, 255, 0.02);
+    }
+
+    .alert-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .alert-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .alert-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--violet);
+      color: var(--bg);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .alert-title {
+      font-family: var(--display);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.02em;
+    }
+
+    .alert-text {
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.7;
+    }
+
+    .action-btn {
+      width: 100%;
+      margin-top: 14px;
+      border: 1px solid var(--neon);
+      padding: 12px 16px;
+      background: transparent;
+      color: var(--neon);
+      font-family: var(--display);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .action-btn:hover {
+      background: var(--neon);
+      color: var(--bg);
+      box-shadow: 0 0 30px var(--neon-dim);
+    }
+
+    .alert-status {
+      margin-top: 10px;
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+    }
+
+    /* Empty State */
+    .empty-state {
+      padding: 50px 20px;
+      text-align: center;
+      border: 1px dashed var(--border);
+    }
+
+    .empty-state .empty-icon {
+      font-size: 32px;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+
+    .empty-state .empty-title {
+      font-family: var(--display);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--violet);
+      margin-bottom: 8px;
+    }
+
+    .empty-state .empty-text {
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    /* Bottom Nav */
+    .bottom-nav {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(12px + var(--safe-bottom));
+      width: min(780px, calc(100vw - 24px));
+      z-index: 50;
+      padding: 6px;
+      border: 1px solid var(--border-neon);
+      background: rgba(10, 10, 15, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .nav-btn {
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-dim);
+      padding: 10px 8px;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .nav-btn:hover {
+      color: var(--neon);
+    }
+
+    .nav-btn.active {
+      background: var(--neon);
+      color: var(--bg);
+      box-shadow: 0 0 20px var(--neon-dim);
+    }
+
+    /* Hexagon Pattern Decoration */
+    .hex-pattern {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 200px;
+      height: 200px;
+      opacity: 0.03;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .bento-top,
+      .bento-middle {
+        grid-template-columns: 1fr;
+      }
+
+      .tabs-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .class-card {
+        grid-template-columns: 80px 1fr;
+      }
+
+      .session-row {
+        grid-template-columns: 35px 85px 1fr;
+        font-size: 11px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Hexagon Pattern -->
+  <svg class="hex-pattern" viewBox="0 0 100 100">
+    <pattern id="hexagons" width="28" height="49" patternUnits="userSpaceOnUse" patternTransform="scale(0.5)">
+      <polygon points="14,0 28,8 28,24 14,32 0,24 0,8" fill="none" stroke="currentColor" stroke-width="0.5"/>
+      <polygon points="14,33 28,41 28,57 14,65 0,57 0,41" fill="none" stroke="currentColor" stroke-width="0.5"/>
+      <polygon points="28,16.5 42,24.5 42,40.5 28,48.5 14,40.5 14,24.5" fill="none" stroke="currentColor" stroke-width="0.5"/>
+    </pattern>
+    <rect width="100%" height="100%" fill="url(#hexagons)" stroke="var(--violet)"/>
+  </svg>
+
+  <!-- Warning Banner (shown during class) -->
+  <div class="warning-banner" id="warningBanner">
+    <span class="warning-text">PATTERN BLUE // CLASS IN SESSION</span>
+  </div>
+
+  <!-- Boot Screen -->
+  <div class="boot-screen" id="bootScreen">
+    <div class="nerv-logo">
+      <svg viewBox="0 0 100 100">
+        <polygon points="50,5 95,75 5,75" fill="none" stroke="currentColor" stroke-width="3"/>
+        <polygon points="50,20 80,65 20,65" fill="none" stroke="currentColor" stroke-width="2"/>
+        <circle cx="50" cy="48" r="8" fill="currentColor"/>
+      </svg>
+    </div>
+    <div class="boot-title">NERV</div>
+    <div class="boot-subtitle">EDUCATION TERMINAL SYSTEM</div>
+    <div class="boot-box">
+      <div class="boot-header">
+        <span class="boot-header-title">MAGI SYSTEM BOOT</span>
+        <span class="boot-code">VER 3.14159</span>
+      </div>
+      <div class="boot-log" id="bootLog"></div>
+      <div class="boot-progress"><div id="bootBar"></div></div>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div class="app">
+    <!-- Header -->
+    <div class="header-section">
+      <div class="header-top">
+        <div class="system-id">NERV<span>//</span>EDU</div>
+        <div class="jp-badge">神経教育</div>
+      </div>
+    </div>
+
+    <div class="bento-grid">
+      <!-- Top Row -->
+      <div class="bento-top">
+        <div class="card card-neon hero-card" id="heroCard">
+          <div class="corner-marks" style="color: var(--bg);"></div>
+        </div>
+        <div class="card card-outline-violet status-card" id="statusCard"></div>
+      </div>
+
+      <!-- Middle Row -->
+      <div class="bento-middle">
+        <div class="card card-outline-neon sync-card" id="syncCard"></div>
+        <div class="card card-violet data-card" id="dataCard">
+          <div class="corner-marks" style="color: var(--bg);"></div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs-section">
+        <div class="tabs-header">
+          <span class="tabs-title">OPERATION MODE</span>
+          <span class="tabs-code">MAGI-01</span>
+        </div>
+        <div class="tabs-row" id="tabs"></div>
+      </div>
+
+      <!-- Content -->
+      <main id="content"></main>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-tab="today">Today</button>
+    <button class="nav-btn" data-tab="week">Week</button>
+    <button class="nav-btn" data-tab="subjects">Units</button>
+    <button class="nav-btn" data-tab="alerts">Alerts</button>
+  </nav>
+
+  <script>
+    const CLASSES = [
+      {day:1,s:'09:00',e:'10:30',name:'Academic English for Humanities',code:'AEH',type:'Tutorial',loc:'L5-W309',staff:'Jerome Van Putten'},
+      {day:1,s:'11:00',e:'12:00',name:'Computing for Business',code:'CFB',type:'Lecture',loc:'Online',staff:'Frank Jia'},
+      {day:1,s:'13:00',e:'14:00',name:'Economics: Microeconomics',code:'ECON',type:'Lecture',loc:'E19-OShane 105',staff:'Samangi Bandaranayake'},
+      {day:1,s:'15:00',e:'16:00',name:'Mathematics for Commerce',code:'MATH',type:'Lecture',loc:'F10-Griff M18',staff:'Kavitha Nagabooshanam'},
+      {day:2,s:'10:00',e:'11:00',name:'Mathematics for Commerce',code:'MATH',type:'Tutorial',loc:'L5-LG13',staff:'Kavitha Nagabooshanam'},
+      {day:2,s:'12:00',e:'13:00',name:'Accounting',code:'ACCT',type:'Lecture',loc:'G15-WebA',staff:'Shima Forughi'},
+      {day:2,s:'13:30',e:'14:30',name:'Academic English for Humanities',code:'AEH',type:'Workshop',loc:'L5-W303',staff:'Jerome Van Putten'},
+      {day:2,s:'14:30',e:'16:00',name:'Academic English for Humanities',code:'AEH',type:'Tutorial',loc:'L5-W303',staff:'Jerome Van Putten'},
+      {day:3,s:'09:00',e:'10:30',name:'Accounting',code:'ACCT',type:'Tutorial',loc:'G6-B107',staff:'Shima Forughi'},
+      {day:3,s:'10:30',e:'12:00',name:'Computing for Business',code:'CFB',type:'Tutorial',loc:'L5-G14',staff:'Cara Reyes'},
+      {day:3,s:'13:00',e:'14:00',name:'Economics: Microeconomics',code:'ECON',type:'Lecture',loc:'E19-OShane 105',staff:'Samangi Bandaranayake'},
+      {day:3,s:'16:00',e:'17:00',name:'Mathematics for Commerce',code:'MATH',type:'Lecture',loc:'F10-Griff M18',staff:'Kavitha Nagabooshanam'},
+      {day:3,s:'17:00',e:'18:00',name:'Mathematics for Commerce',code:'MATH',type:'Tutorial',loc:'G6-B201',staff:'Kavitha Nagabooshanam'},
+      {day:4,s:'09:00',e:'11:00',name:'Economics: Microeconomics',code:'ECON',type:'Tutorial',loc:'G6-B122',staff:'Samangi Bandaranayake'},
+      {day:4,s:'12:00',e:'13:00',name:'Mathematics for Commerce',code:'MATH',type:'Lecture',loc:'D23-MatB',staff:'Kavitha Nagabooshanam'},
+      {day:5,s:'10:00',e:'12:00',name:'Academic English for Humanities',code:'AEH',type:'Workshop',loc:'L5-W301',staff:'Mariann Banfi, Peter Alexander'},
+      {day:5,s:'12:00',e:'13:00',name:'Mathematics for Commerce',code:'MATH',type:'Tutorial',loc:'G6-B107',staff:'Kavitha Nagabooshanam'},
+      {day:5,s:'16:00',e:'17:30',name:'Academic English for Humanities',code:'AEH',type:'Tutorial',loc:'G6-B202',staff:'Jerome Van Putten'}
+    ];
+
+    const DAY_NAMES = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+    const SHORT_DAY = ['', 'MON', 'TUE', 'WED', 'THU', 'FRI'];
+    const JP_DAYS = ['', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日'];
+
+    let currentTab = 'today';
+    let reminderTimers = [];
+
+    function toMinutes(t) {
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    function formatTime(t) {
+      const [hh, mm] = t.split(':').map(Number);
+      const suffix = hh >= 12 ? 'PM' : 'AM';
+      const h12 = hh % 12 || 12;
+      return mm === 0 ? `${h12}${suffix}` : `${h12}:${String(mm).padStart(2, '0')}${suffix}`;
+    }
+
+    function getWeekday(now = new Date()) {
+      const d = now.getDay();
+      return d >= 1 && d <= 5 ? d : null;
+    }
+
+    function getNowMinutes(now = new Date()) {
+      return now.getHours() * 60 + now.getMinutes();
+    }
+
+    function classesForDay(day) {
+      return CLASSES.filter(c => c.day === day).sort((a, b) => toMinutes(a.s) - toMinutes(b.s));
+    }
+
+    function getStatus(c, now = new Date()) {
+      const today = getWeekday(now);
+      if (today !== c.day) return 'other';
+      const mins = getNowMinutes(now);
+      if (mins > toMinutes(c.e)) return 'past';
+      if (mins >= toMinutes(c.s)) return 'now';
+      return 'upcoming';
+    }
+
+    function nextClassForToday(now = new Date()) {
+      const day = getWeekday(now);
+      if (!day) return null;
+      const mins = getNowMinutes(now);
+      const list = classesForDay(day);
+      return list.find(c => toMinutes(c.s) > mins) || list.find(c => toMinutes(c.s) <= mins && toMinutes(c.e) >= mins) || null;
+    }
+
+    function currentClass(now = new Date()) {
+      const day = getWeekday(now);
+      if (!day) return null;
+      const mins = getNowMinutes(now);
+      return classesForDay(day).find(c => toMinutes(c.s) <= mins && toMinutes(c.e) >= mins) || null;
+    }
+
+    function countdownLabel(c, now = new Date()) {
+      if (!c) return '--:--';
+      const status = getStatus(c, now);
+      if (status === 'now') return 'SYNC';
+      const delta = toMinutes(c.s) - getNowMinutes(now);
+      const h = Math.floor(delta / 60);
+      const m = delta % 60;
+      return h > 0 ? `${h}H ${m}M` : `${m}M`;
+    }
+
+    function renderHeader() {
+      const now = new Date();
+      const day = getWeekday(now);
+      const next = nextClassForToday(now);
+      const current = currentClass(now);
+      const todayClasses = day ? classesForDay(day) : [];
+      const timeStr = now.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+      // Update warning banner
+      const warningBanner = document.getElementById('warningBanner');
+      if (current) {
+        warningBanner.classList.add('active');
+      } else {
+        warningBanner.classList.remove('active');
+      }
+
+      // Hero Card (Neon)
+      document.getElementById('heroCard').innerHTML = `
+        <div class="corner-marks" style="color: var(--bg);"></div>
+        <div>
+          <div class="hero-label">TERMINAL // ${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}</div>
+          <div class="hero-day">${day ? SHORT_DAY[day] : 'OFF'}</div>
+        </div>
+        <div>
+          <div class="hero-date">${now.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()}</div>
+        </div>
+        <span class="hero-jp">${day ? JP_DAYS[day] : '週末'}</span>
+      `;
+
+      // Status Card
+      document.getElementById('statusCard').innerHTML = `
+        <div>
+          <div class="status-label">SYSTEM TIME</div>
+          <div class="status-time">${timeStr}</div>
+        </div>
+        <div>
+          <div class="status-label">OPERATIONAL STATUS</div>
+          <div class="status-row">
+            <span class="status-dot" style="${!day ? 'background: var(--text-dim); box-shadow: none;' : ''}"></span>
+            <span class="status-text" style="${!day ? 'color: var(--text-dim);' : ''}">${day ? 'ACTIVE' : 'STANDBY'}</span>
+          </div>
+        </div>
+      `;
+
+      // Sync Card
+      const syncTarget = current || next;
+      document.getElementById('syncCard').innerHTML = `
+        <div>
+          <div class="sync-label" style="color: var(--neon);">NEXT TARGET</div>
+          <div class="sync-title" style="color: var(--text);">${syncTarget ? syncTarget.name : (day ? 'ALL CLEAR' : 'WEEKEND MODE')}</div>
+          <div class="sync-meta" style="color: var(--text-dim); margin-top: 4px;">${syncTarget ? `${syncTarget.type} // ${syncTarget.loc}` : 'NO PENDING OPERATIONS'}</div>
+        </div>
+        <div>
+          <div class="sync-countdown" style="color: var(--neon);">${countdownLabel(syncTarget, now)}</div>
+        </div>
+      `;
+
+      // Data Card (Violet)
+      document.getElementById('dataCard').innerHTML = `
+        <div class="corner-marks" style="color: var(--bg);"></div>
+        <div>
+          <div class="data-label">UNITS TODAY</div>
+          <div class="data-value">${String(todayClasses.length).padStart(2, '0')}</div>
+        </div>
+        <div>
+          <div class="data-bars">
+            ${Array(5).fill(0).map((_, i) => `<div class="data-bar ${i < todayClasses.length ? 'active' : ''}"></div>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function classCard(c, forcedStatus = null) {
+      const status = forcedStatus || getStatus(c);
+      return `
+        <article class="class-card ${status === 'past' ? 'past' : ''} ${status === 'now' ? 'now' : ''}">
+          <div class="class-time-block">
+            <div class="class-time-main">${formatTime(c.s)}</div>
+            <div class="class-time-sub">${formatTime(c.e)}</div>
+          </div>
+          <div class="class-info">
+            <div class="class-header">
+              <span class="class-name">${c.name}</span>
+              <span class="class-code ${c.code}">${c.code}</span>
+            </div>
+            <div class="class-meta">
+              ${status === 'now' ? '<span class="live-tag">SYNC</span>' : ''}
+              <span>${c.type}</span>
+              <span>${c.loc}</span>
+              <span>${c.staff.split(',')[0]}</span>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderToday() {
+      const day = getWeekday();
+      const list = day ? classesForDay(day) : [];
+      return `
+        <div class="content-panel">
+          <div class="panel-header">
+            <span class="panel-title">DAILY OPERATIONS</span>
+            <span class="panel-badge">${day ? SHORT_DAY[day] : 'OFF'}</span>
+          </div>
+          <div class="panel-content">
+            ${!day
+              ? '<div class="empty-state"><div class="empty-title">STANDBY MODE</div><div class="empty-text">No operations scheduled. System in maintenance.</div></div>'
+              : list.length
+                ? list.map(c => classCard(c)).join('')
+                : '<div class="empty-state"><div class="empty-title">ALL CLEAR</div><div class="empty-text">No operations scheduled for today.</div></div>'
+            }
+          </div>
+        </div>
+      `;
+    }
+
+    function renderWeek() {
+      const today = getWeekday();
+      let html = `
+        <div class="content-panel">
+          <div class="panel-header">
+            <span class="panel-title">WEEKLY MATRIX</span>
+            <span class="panel-badge">MON-FRI</span>
+          </div>
+          <div class="panel-content">
+      `;
+      for (let d = 1; d <= 5; d++) {
+        const list = classesForDay(d);
+        html += `
+          <div class="week-day-card">
+            <div class="week-day-header">
+              <div class="week-day-name">${DAY_NAMES[d]} ${today === d ? '<span class="today-badge">ACTIVE</span>' : ''}</div>
+              <div class="week-day-count">${list.length} UNIT${list.length === 1 ? '' : 'S'}</div>
+            </div>
+            <div class="week-day-content">
+              ${list.length
+                ? list.map(c => classCard(c, today === d ? null : 'other')).join('')
+                : '<div class="empty-state"><div class="empty-text">No operations.</div></div>'
+              }
+            </div>
+          </div>
+        `;
+      }
+      html += `</div></div>`;
+      return html;
+    }
+
+    function renderSubjects() {
+      const codes = [...new Set(CLASSES.map(c => c.code))];
+      return `
+        <div class="content-panel">
+          <div class="panel-header">
+            <span class="panel-title">UNIT DATABASE</span>
+            <span class="panel-badge">${codes.length} LOADED</span>
+          </div>
+          <div class="panel-content">
+            ${codes.map(code => {
+              const list = CLASSES.filter(c => c.code === code).sort((a, b) => a.day - b.day || toMinutes(a.s) - toMinutes(b.s));
+              return `
+                <div class="subject-card">
+                  <div class="subject-header">
+                    <span class="subject-title">${list[0].name}</span>
+                    <span class="subject-count">${list.length} SESSIONS/WK</span>
+                  </div>
+                  ${list.map(c => `
+                    <div class="session-row">
+                      <div class="session-day">${SHORT_DAY[c.day]}</div>
+                      <div class="session-time">${formatTime(c.s)}-${formatTime(c.e)}</div>
+                      <div class="session-meta">${c.type} / ${c.loc}</div>
+                    </div>
+                  `).join('')}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function requestNotifications() {
+      if (!('Notification' in window)) {
+        alert('Notifications are not supported in this browser.');
+        return;
+      }
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') scheduleTodayReminders();
+        render();
+      });
+    }
+
+    function scheduleTodayReminders() {
+      reminderTimers.forEach(clearTimeout);
+      reminderTimers = [];
+
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+      const day = getWeekday();
+      if (!day) return;
+
+      const now = new Date();
+      const mins = getNowMinutes(now);
+
+      classesForDay(day).forEach(c => {
+        const delay = (toMinutes(c.s) - 15 - mins) * 60000;
+        if (delay > 0) {
+          const timer = setTimeout(() => {
+            new Notification('NERV ALERT: Operation in 15 minutes', {
+              body: `${c.name} / ${c.type} / ${c.loc} / starts ${formatTime(c.s)}`
+            });
+          }, delay);
+          reminderTimers.push(timer);
+        }
+      });
+    }
+
+    function renderAlerts() {
+      const permission = 'Notification' in window ? Notification.permission : 'unsupported';
+      const statusText =
+        permission === 'granted'
+          ? 'STATUS: ENABLED'
+          : permission === 'denied'
+            ? 'STATUS: BLOCKED'
+            : permission === 'unsupported'
+              ? 'STATUS: UNSUPPORTED'
+              : 'STATUS: DISABLED';
+
+      return `
+        <div class="content-panel">
+          <div class="panel-header">
+            <span class="panel-title">ALERT SYSTEM</span>
+            <span class="panel-badge">MAGI</span>
+          </div>
+          <div class="panel-content">
+            <div class="alert-card">
+              <div class="alert-header">
+                <div class="alert-icon">!</div>
+                <div class="alert-title">Operation Reminders</div>
+              </div>
+              <div class="alert-text">
+                Enable MAGI notification system to receive alerts 15 minutes before each scheduled operation. Reminders are generated daily based on current schedule data.
+              </div>
+              <button class="action-btn" onclick="requestNotifications()">ACTIVATE ALERT SYSTEM</button>
+              <div class="alert-status">${statusText}</div>
+            </div>
+
+            <div class="alert-card">
+              <div class="alert-header">
+                <div class="alert-icon">N</div>
+                <div class="alert-title">Night-Before Protocol</div>
+              </div>
+              <div class="alert-text">
+                External automation required for scheduled transmissions. Connect via Telegram bot or IFTTT for 22:00 daily briefing summaries.
+              </div>
+            </div>
+
+            <div class="alert-card">
+              <div class="alert-header">
+                <div class="alert-icon">i</div>
+                <div class="alert-title">Terminal Installation</div>
+              </div>
+              <div class="alert-text">
+                Safari > Share > Add to Home Screen. Terminal will run in standalone mode with full-screen display and offline capability.
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTabs() {
+      const defs = [
+        ['today', 'Today'],
+        ['week', 'Week'],
+        ['subjects', 'Units'],
+        ['alerts', 'Alerts']
+      ];
+
+      document.getElementById('tabs').innerHTML = defs.map(([id, label]) => `
+        <button class="tab-btn ${currentTab === id ? 'active' : ''}" data-tab="${id}">${label}</button>
+      `).join('');
+
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+      });
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === currentTab);
+        btn.onclick = () => switchTab(btn.dataset.tab);
+      });
+    }
+
+    function renderContent() {
+      const content = document.getElementById('content');
+      if (currentTab === 'today') content.innerHTML = renderToday();
+      else if (currentTab === 'week') content.innerHTML = renderWeek();
+      else if (currentTab === 'subjects') content.innerHTML = renderSubjects();
+      else content.innerHTML = renderAlerts();
+    }
+
+    function render() {
+      renderHeader();
+      renderTabs();
+      renderContent();
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      render();
+    }
+
+    function runBootSequence() {
+      const bootScreen = document.getElementById('bootScreen');
+      const bootLog = document.getElementById('bootLog');
+      const bootBar = document.getElementById('bootBar');
+
+      const lines = [
+        'MAGI SYSTEM INITIALIZING...',
+        'MELCHIOR-1 ........ OK',
+        'BALTHASAR-2 ....... OK',
+        'CASPER-3 .......... OK',
+        'SYNC RATE: 100.0%',
+        'LOADING SCHEDULE DATABASE...',
+        'TERMINAL READY.',
+        '',
+        'God\'s in His heaven.',
+        'All\'s right with the world.'
+      ];
+
+      let index = 0;
+      const interval = setInterval(() => {
+        if (index < lines.length) {
+          bootLog.textContent += lines[index] + '\n';
+          bootBar.style.width = `${((index + 1) / lines.length) * 100}%`;
+          index++;
+        } else {
+          clearInterval(interval);
+          setTimeout(() => {
+            bootScreen.classList.add('hidden');
+          }, 600);
+        }
+      }, 180);
+    }
+
+    setInterval(() => {
+      renderHeader();
+      if (currentTab === 'today') renderContent();
+    }, 1000);
+
+    setInterval(() => {
+      scheduleTodayReminders();
+    }, 60000);
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+      scheduleTodayReminders();
+    }
+
+    render();
+    runBootSequence();
+  </script>
+</body>
+</html>
